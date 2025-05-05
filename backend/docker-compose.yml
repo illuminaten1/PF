@@ -1,0 +1,53 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: pf-mongodb
+    restart: always
+    ports:
+      - "27018:27017"  # Port différent de PJC
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    networks:
+      - pf-network
+
+  backend:
+    build: ./backend
+    container_name: pf-backend
+    restart: always
+    ports:
+      - "5003:5003"  # Port différent de PJC
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/protection-fonctionnelle?authSource=admin
+      - JWT_SECRET=pf_secret_key
+      - PORT=5003
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend/templates:/app/templates
+      - ./backend/temp:/app/temp
+    networks:
+      - pf-network
+
+  frontend:
+    build: ./client
+    container_name: pf-frontend
+    restart: always
+    ports:
+      - "81:80"  # Port différent de PJC
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://localhost:5003/api
+    networks:
+      - pf-network
+
+networks:
+  pf-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
